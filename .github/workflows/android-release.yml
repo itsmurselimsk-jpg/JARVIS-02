@@ -149,7 +149,7 @@ jobs:
     name: Build Signed Release APK & Publish
     runs-on: ubuntu-latest
     needs: build-debug
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.build_variant == 'release')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.build_variant == 'release')
     permissions:
       contents: write
 
@@ -172,6 +172,22 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
+
+      - name: Determine Release Tag & Version
+        id: release_meta
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "is_nightly=false" >> $GITHUB_OUTPUT
+          else
+            VN="1.0.0"
+            if [ -f version.properties ]; then
+              VN=$(grep "VERSION_NAME" version.properties | cut -d'=' -f2 | tr -d '[:space:]' || echo "1.0.0")
+            fi
+            echo "tag=nightly" >> $GITHUB_OUTPUT
+            echo "is_nightly=true" >> $GITHUB_OUTPUT
+            echo "version_name=$VN" >> $GITHUB_OUTPUT
+          fi
 
       - name: Validate Signing Secrets & Decode Keystore
         id: signing_setup
@@ -238,8 +254,14 @@ jobs:
             echo "::warning::apksigner not found; skipping explicit signature verification."
           fi
 
-          TAG_LABEL="${GITHUB_REF_NAME}"
-          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+          TAG_LABEL="${{ steps.release_meta.outputs.tag }}"
+          if [ "$TAG_LABEL" = "nightly" ]; then
+            TAG_LABEL="nightly-${{ steps.release_meta.outputs.version_name }}"
+          fi
+          if [ -z "$TAG_LABEL" ]; then
+            TAG_LABEL="${GITHUB_REF_NAME}"
+          fi
+          if [[ "$GITHUB_REF" != refs/tags/* ]] && [ "$TAG_LABEL" = "${GITHUB_REF_NAME}" ]; then
             TAG_LABEL="manual-${GITHUB_RUN_NUMBER}"
           fi
 
@@ -257,7 +279,7 @@ jobs:
 
           {
             echo "### JARVIS AI — Release Build Succeeded"
-            echo "- **Version Tag:** \`${TAG_LABEL}\`"
+            echo "- **Release Tag:** \`${{ steps.release_meta.outputs.tag }}\`"
             echo "- **Signed APK:** \`${ASSET_NAME}\` (${APK_SIZE})"
             echo "- **SHA-256:** \`${APK_SHA256}\`"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -265,22 +287,23 @@ jobs:
       - name: Upload Release APK Workflow Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jarvis-ai-release-apk-${{ github.ref_name }}
+          name: jarvis-ai-release-apk-${{ steps.release_meta.outputs.tag }}
           path: release-artifacts/
           retention-days: 30
           if-no-files-found: error
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: JARVIS AI ${{ github.ref_name }}
+          tag_name: ${{ steps.release_meta.outputs.tag }}
+          name: JARVIS AI ${{ steps.release_meta.outputs.tag }} (${{ steps.release_meta.outputs.version_name || github.ref_name }})
           generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ steps.release_meta.outputs.is_nightly }}
+          make_latest: ${{ !steps.release_meta.outputs.is_nightly }}
           fail_on_unmatched_files: true
           body: |
-            ## JARVIS AI ${{ github.ref_name }}
+            ## JARVIS AI — ${{ steps.release_meta.outputs.tag }}
 
             **Signed Android Release APK**
             - **APK:** `${{ steps.prepare_assets.outputs.asset_name }}` (${{ steps.prepare_assets.outputs.apk_size }})
@@ -314,7 +337,7 @@ jobs:
         run: |
           {
             echo "### JARVIS AI — Release Build Failed"
-            echo "Check the \`jarvis-ai-release-failure-logs-${{ github.run_id }}\` artifact or workflow logs."
+            echo "Check the \`jarvis-ai-release-failure-logs-${{ github.run_id }}\` artifact or workflow logs workflow files."
             if [ -f build-logs/release-build.log ]; then
               echo ""
               echo "<details><summary>Last 60 lines of Gradle output</summary>"
