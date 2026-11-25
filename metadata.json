@@ -1,0 +1,6 @@
+{
+  "name": "JARVIS AI",
+  "description": "Futuristic bilingual (Hindi & English) JARVIS AI voice assistant, chat interface, and phone automation agent for Android",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

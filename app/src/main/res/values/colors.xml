@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FF00E5FF</color>
+    <color name="purple_500">#FF0088FF</color>
+    <color name="purple_700">#FF004099</color>
+    <color name="teal_200">#FF00E5FF</color>
+    <color name="teal_700">#FF0088FF</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFF0F6FC</color>
+    <color name="wave_color">#FF00E5FF</color>
+    <color name="background_color">#FF000000</color>
+    <color name="dark_background">#FF000000</color>
+    <color name="button_blue">#FF0088FF</color>
+    <color name="text_gray">#FF8DA4BF</color>
+    <color name="gradient_start">#FF0088FF</color>
+    <color name="gradient_end">#FF00E5FF</color>
+    <color name="input_box_background">#FF0C1626</color>
+    <color name="panel_background">#FF070D16</color>
+
+    <!-- HUD Surface & Typography Colors -->
+    <color name="background">#FF000000</color>
+    <color name="primary">#FF0088FF</color>
+    <color name="accent">#FF00E5FF</color>
+    <color name="surface">#FF0C1626</color>
+    <color name="text_primary">#FFF0F6FC</color>
+    <color name="text_secondary">#FF8DA4BF</color>
+    <color name="orange">#FFFFB300</color>
+
+    <!-- JARVIS Core State Colors -->
+    <color name="delta_idle">#FF00E5FF</color>
+    <color name="delta_listening">#FFFFB300</color>
+    <color name="delta_processing">#FF0088FF</color>
+    <color name="delta_speaking">#FF00E676</color>
+    <color name="delta_error">#FFFF3D5A</color>
+</resources>
